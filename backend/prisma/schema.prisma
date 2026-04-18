@@ -1,0 +1,232 @@
+// =====================================================
+// SCHEMĂ PRISMA — APLICAȚIE HR
+// Acoperă: utilizatori, angajați, concedii, pontaj,
+// documente, notificări, joburi, candidați
+// =====================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// === ENUM-URI (valori fixe) ===
+
+enum Role {
+  ADMIN_HR   // Poate face orice: gestionare angajați, rapoarte, recrutare
+  MANAGER    // Aprobă/respinge concedii, vede echipa lui
+  ANGAJAT    // Vede propriile date, depune cereri
+}
+
+enum LeaveType {
+  ODIHNA          // Concediu de odihnă
+  MEDICAL         // Concediu medical
+  FARA_PLATA      // Concediu fără plată
+  MATERNITATE     // Maternitate/Paternitate
+  EVENIMENT       // Eveniment familial (căsătorie, deces)
+}
+
+enum LeaveStatus {
+  IN_ASTEPTARE   // Cererea a fost depusă, nu a fost procesată
+  APROBATA
+  RESPINSA
+  ANULATA        // Angajatul a retras cererea
+}
+
+enum JobStatus {
+  DESCHIS
+  INCHIS
+  IN_PAUZA
+}
+
+enum CandidateStatus {
+  APLICAT
+  IN_REVIZUIRE
+  INTERVIU
+  OFERTA
+  ANGAJAT
+  RESPINS
+}
+
+// === MODELE ===
+
+// Utilizator — pentru autentificare (username + parolă + rol)
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String    // Parola criptată cu bcrypt
+  role         Role      @default(ANGAJAT)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relație 1-la-1 cu detaliile angajatului
+  employee     Employee?
+
+  // Notificările primite
+  notifications Notification[]
+}
+
+// Angajat — profilul complet (date personale, job, salariu)
+model Employee {
+  id             Int       @id @default(autoincrement())
+  userId         Int       @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Date personale
+  firstName      String
+  lastName       String
+  cnp            String?   @unique  // CNP — unic, opțional pentru început
+  phone          String?
+  address        String?
+  birthDate      DateTime?
+
+  // Date profesionale
+  position       String    // Funcție (ex: "Developer Senior")
+  departmentId   Int?
+  department     Department? @relation(fields: [departmentId], references: [id])
+  managerId      Int?      // Referință la alt Employee (șeful direct)
+  manager        Employee?  @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  subordinates   Employee[] @relation("ManagerSubordinates")
+
+  hireDate       DateTime  @default(now())
+  salary         Decimal?  @db.Decimal(10, 2)  // Confidențial — vizibil doar Admin HR
+
+  // Număr zile concediu rămase în an
+  vacationDaysLeft Int     @default(21)
+
+  // Relații
+  leaveRequests  LeaveRequest[]
+  attendances    Attendance[]
+  documents      Document[]
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// Department — departamente (IT, HR, Vânzări etc.)
+model Department {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique
+  description String?
+  employees  Employee[]
+  jobs       Job[]
+  createdAt  DateTime  @default(now())
+}
+
+// LeaveRequest — cerere de concediu
+model LeaveRequest {
+  id         Int          @id @default(autoincrement())
+  employeeId Int
+  employee   Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  leaveType  LeaveType
+  startDate  DateTime
+  endDate    DateTime
+  daysCount  Int          // Numărul de zile lucrătoare — calculat automat
+  reason     String?      // Motivul cererii
+
+  status     LeaveStatus  @default(IN_ASTEPTARE)
+  reviewedBy Int?         // ID-ul managerului care a aprobat/respins
+  reviewNote String?      // Motiv respingere (dacă e cazul)
+  reviewedAt DateTime?
+
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([employeeId, status])
+}
+
+// Attendance — pontaj (ore lucrate pe zi)
+model Attendance {
+  id         Int       @id @default(autoincrement())
+  employeeId Int
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  date       DateTime  @db.Date        // Doar data, fără oră
+  checkIn    DateTime?                  // Ora sosirii
+  checkOut   DateTime?                  // Ora plecării
+  hoursWorked Decimal? @db.Decimal(4, 2) // Calculat automat: checkOut - checkIn
+  note       String?
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([employeeId, date])  // Un singur pontaj pe zi per angajat
+  @@index([date])
+}
+
+// Document — documente HR (contracte, fișe post, acte)
+model Document {
+  id         Int       @id @default(autoincrement())
+  employeeId Int
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  title      String                       // Nume afișat
+  fileName   String                       // Nume fișier pe disk
+  filePath   String                       // Cale relativă (ex: /uploads/doc_123.pdf)
+  fileType   String                       // MIME type (ex: application/pdf)
+  fileSize   Int                          // Dimensiune în bytes
+
+  category   String    @default("GENERAL") // CONTRACT, CV, FISA_POST etc.
+  uploadedBy Int                           // User ID care a încărcat
+  createdAt  DateTime  @default(now())
+}
+
+// Notification — notificări interne
+model Notification {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title      String
+  message    String
+  link       String?                      // URL intern (ex: /leaves/12)
+  isRead     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, isRead])
+}
+
+// Job — anunț de recrutare
+model Job {
+  id           Int        @id @default(autoincrement())
+  title        String
+  description  String     @db.Text
+  requirements String     @db.Text
+  departmentId Int?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  salaryMin    Decimal?   @db.Decimal(10, 2)
+  salaryMax    Decimal?   @db.Decimal(10, 2)
+  location     String?
+  status       JobStatus  @default(DESCHIS)
+
+  candidates   Candidate[]
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+// Candidate — candidați la joburi
+model Candidate {
+  id         Int             @id @default(autoincrement())
+  jobId      Int
+  job        Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  firstName  String
+  lastName   String
+  email      String
+  phone      String?
+  cvPath     String?                       // Cale către CV-ul încărcat
+  notes      String?         @db.Text      // Note ale recrutorului
+  status     CandidateStatus @default(APLICAT)
+
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([jobId, status])
+}

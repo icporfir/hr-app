@@ -1,13 +1,17 @@
-// =====================================================
-// Punctul central unde vor fi montate toate rutele.
-// În Prompt 2 vom adăuga: auth, employees, leaves etc.
-// =====================================================
+// =====================================================================
+// Agregator rute API — punctul central unde se montează toate modulele
+// =====================================================================
 
 import express from 'express';
+import authRoutes from './authRoutes.js';
+import employeesRoutes from './employeesRoutes.js';
+import leavesRoutes from './leavesRoutes.js';
+import attendanceRoutes from './attendanceRoutes.js';
+import statisticsRoutes from './statisticsRoutes.js';
 
 const router = express.Router();
 
-// Ruta de test — verifică dacă serverul e funcțional
+// Health check — nu necesită autentificare
 router.get('/health', (req, res) => {
   res.json({
     success: true,
@@ -17,14 +21,16 @@ router.get('/health', (req, res) => {
   });
 });
 
-// AICI vor fi montate rutele în prompturile următoare:
-// router.use('/auth', authRoutes);
-// router.use('/employees', employeeRoutes);
-// router.use('/leaves', leaveRoutes);
-// router.use('/attendance', attendanceRoutes);
+// Module API
+router.use('/auth', authRoutes);
+router.use('/employees', employeesRoutes);
+router.use('/leaves', leavesRoutes);
+router.use('/attendance', attendanceRoutes);
+router.use('/statistics', statisticsRoutes);
+
+// AICI vom adăuga în prompturile următoare:
 // router.use('/documents', documentRoutes);
 // router.use('/notifications', notificationRoutes);
 // router.use('/jobs', jobRoutes);
-// router.use('/reports', reportRoutes);
 
 export default router;

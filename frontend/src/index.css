@@ -1,40 +1,63 @@
-/* Directivele Tailwind — obligatorii */
+/* ====================================================================
+   CSS global + directive Tailwind + componente utility reutilizabile
+   ==================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Reset și stiluri globale */
-@layer base {
-  html {
-    -webkit-font-smoothing: antialiased;
-  }
-
-  body {
-    @apply bg-gray-50 text-gray-900;
-    font-family: 'Inter', system-ui, sans-serif;
-  }
+/* ----- Bază ----- */
+html, body, #root {
+  height: 100%;
 }
 
-/* Componente reutilizabile definite cu Tailwind */
+body {
+  @apply bg-gray-50 text-gray-900 font-sans antialiased;
+}
+
+/* ----- Clase utility (folosite des) ----- */
 @layer components {
+
+  /* Buton principal */
   .btn-primary {
-    @apply px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 
-           transition-colors font-medium focus:outline-none focus:ring-2 
-           focus:ring-primary-500 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           bg-primary-700 text-white font-medium rounded-lg
+           hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500
+           disabled:opacity-50 disabled:cursor-not-allowed transition;
   }
 
+  /* Buton secundar */
   .btn-secondary {
-    @apply px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 
-           transition-colors font-medium;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           bg-white text-gray-700 font-medium rounded-lg border border-gray-300
+           hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500
+           disabled:opacity-50 disabled:cursor-not-allowed transition;
   }
 
+  /* Buton danger (ștergere, respingere) */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           bg-danger text-white font-medium rounded-lg
+           hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400
+           disabled:opacity-50 disabled:cursor-not-allowed transition;
+  }
+
+  /* Card container */
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
+    @apply bg-white rounded-xl shadow-card p-6;
   }
 
+  /* Input form */
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg 
-           focus:outline-none focus:ring-2 focus:ring-primary-500 
-           focus:border-transparent;
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+           disabled:bg-gray-100 disabled:cursor-not-allowed transition;
+  }
+
+  /* Label form */
+  .label-field {
+    @apply block text-sm font-medium text-gray-700 mb-1;
   }
 }

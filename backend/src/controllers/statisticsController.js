@@ -153,3 +153,36 @@ export const getHoursThisWeek = asyncHandler(async (req, res) => {
 
   res.json({ success: true, data });
 });
+
+// =====================================================================
+// Ultimii N angajați adăugați (implicit 3) — pentru Dashboard
+// Sortare descrescătoare după createdAt
+// Acces: ADMIN_HR și MANAGER (convenție existentă pentru /api/statistics)
+// =====================================================================
+
+export const getRecentEmployees = asyncHandler(async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 3, 10); // max 10
+
+  const employees = await prisma.employee.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    include: {
+      department: { select: { name: true } },
+      user:       { select: { email: true, isActive: true } },
+    },
+  });
+
+  // Normalizare — eliminăm câmpuri sensibile (ex: salary)
+  const data = employees.map((e) => ({
+    id:         e.id,
+    firstName:  e.firstName,
+    lastName:   e.lastName,
+    position:   e.position,
+    department: e.department?.name || '—',
+    email:      e.user?.email,
+    isActive:   e.user?.isActive !== false,
+    createdAt:  e.createdAt,
+  }));
+
+  res.json({ success: true, data });
+});

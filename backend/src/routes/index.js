@@ -8,6 +8,7 @@ import employeesRoutes from './employeesRoutes.js';
 import leavesRoutes from './leavesRoutes.js';
 import attendanceRoutes from './attendanceRoutes.js';
 import statisticsRoutes from './statisticsRoutes.js';
+import notificationRoutes from './notificationRoutes.js';
 
 const router = express.Router();
 
@@ -27,10 +28,6 @@ router.use('/employees', employeesRoutes);
 router.use('/leaves', leavesRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/statistics', statisticsRoutes);
-
-// AICI vom adăuga în prompturile următoare:
-// router.use('/documents', documentRoutes);
-// router.use('/notifications', notificationRoutes);
-// router.use('/jobs', jobRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

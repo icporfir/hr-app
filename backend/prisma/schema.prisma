@@ -55,19 +55,37 @@ enum CandidateStatus {
 
 // Utilizator — pentru autentificare (username + parolă + rol)
 model User {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique
-  passwordHash String    // Parola criptată cu bcrypt
-  role         Role      @default(ANGAJAT)
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String   // Parola criptată cu bcrypt
+  role         Role     @default(ANGAJAT)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relație 1-la-1 cu detaliile angajatului
-  employee     Employee?
+  employee      Employee?
 
   // Notificările primite
   notifications Notification[]
+
+  // Refresh tokens (sesiuni active)          
+  refreshTokens RefreshToken[]                 
+}
+
+// Model pentru refresh tokens — folosite pentru a obține access tokens noi
+// La logout, se șterg toate pentru user-ul respectiv (invalidare sesiuni)
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  // rememberMe determină durata: true = 30 zile, false = 24h
+  rememberMe Boolean @default(false)
+
+  @@index([userId])
 }
 
 // Angajat — profilul complet (date personale, job, salariu)
@@ -140,22 +158,26 @@ model LeaveRequest {
   @@index([employeeId, status])
 }
 
-// Attendance — pontaj (ore lucrate pe zi)
+// Attendance — pontaj zilnic
+// Un singur pontaj per angajat per zi (enforced prin @@unique([employeeId, date]))
 model Attendance {
   id         Int       @id @default(autoincrement())
   employeeId Int
   employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
-  date       DateTime  @db.Date        // Doar data, fără oră
+  date       DateTime
   checkIn    DateTime?                  // Ora sosirii
   checkOut   DateTime?                  // Ora plecării
   hoursWorked Decimal? @db.Decimal(4, 2) // Calculat automat: checkOut - checkIn
-  note       String?
+
+  // NOU în Prompt 6+7 — pontaj stil tabel lunar
+  activity   ActivityType @default(MUNCA)  // tip activitate (MUNCA, WEEKEND, etc.)
+  note       String?                        // notă opțională per zi
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  @@unique([employeeId, date])  // Un singur pontaj pe zi per angajat
+  @@unique([employeeId, date])
   @@index([date])
 }
 
@@ -229,4 +251,13 @@ model Candidate {
   updatedAt  DateTime        @updatedAt
 
   @@index([jobId, status])
+}
+
+// Tip activitate pentru pontajul zilnic
+enum ActivityType {
+  MUNCA         // zi lucrătoare normală
+  WEEKEND       // sâmbătă / duminică
+  CONCEDIU      // concediu aprobat (orice tip)
+  SARBATOARE    // sărbătoare legală
+  ABSENT        // absent nemotivat
 }

@@ -1,5 +1,5 @@
 // =====================================================================
-// Rute STATISTICS
+// Rute STATISTICS — acces doar pentru ADMIN_HR și MANAGER
 // =====================================================================
 
 import express from 'express';
@@ -9,18 +9,24 @@ import {
   getLeavesByDepartment,
   getEmployeesByDepartment,
   getHoursThisWeek,
+  getRecentEmployees,
 } from '../controllers/statisticsController.js';
 import { authenticate, requireRole } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Statisticile sunt vizibile doar pentru ADMIN_HR și MANAGER
-router.use(authenticate, requireRole('ADMIN_HR', 'MANAGER'));
+// Toate rutele necesită autentificare + rol ADMIN_HR sau MANAGER
+router.use(authenticate);
+router.use(requireRole('ADMIN_HR', 'MANAGER'));
 
-router.get('/overview', getOverview);
-router.get('/attendance-trend', getAttendanceTrend);
-router.get('/leaves-by-department', getLeavesByDepartment);
+// Rutele existente
+router.get('/overview',                getOverview);
+router.get('/attendance-trend',        getAttendanceTrend);
+router.get('/leaves-by-department',    getLeavesByDepartment);
 router.get('/employees-by-department', getEmployeesByDepartment);
-router.get('/hours-this-week', getHoursThisWeek);
+router.get('/hours-this-week',         getHoursThisWeek);
+
+// Rută nouă
+router.get('/recent-employees',        getRecentEmployees);
 
 export default router;

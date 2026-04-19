@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import apiRoutes from './routes/index.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
+
 // Încarcă variabilele de mediu din .env
 dotenv.config();
 

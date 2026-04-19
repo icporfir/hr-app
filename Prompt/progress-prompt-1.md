@@ -47,3 +47,5 @@ care să conțină:
 - Porturile folosite (frontend/backend/DB)
 - Status: ✅ Funcțional / ❌ Necesită verificare
 Acest document îl voi adăuga ca și context la promptul următor.
+
+
